@@ -16,10 +16,19 @@ const PostRepository = AppDataSource.getRepository(Post).extend({
   findBy(where) {
     return this.find({ where })
   },
-  save(entityOrEntities, options) {
-    return this.manager.save(
+  async save(entityOrEntities, options) {
+    const entities = Array.isArray(entityOrEntities) ? entityOrEntities : [entityOrEntities]
+    // TODO: wrap in transaction?
+    // update tags
+    await Promise.all(entities.map(entity => this.updateTags(entity.id, entity.tags)));
+    // remove tags from entities to prevent hard delete of records in join table
+    entities.forEach(entity => {
+      entity.tags = undefined
+    })
+    // save entities
+    return await this.manager.save(
       this.metadata.target,
-      entityOrEntities,
+      entities,
       options,
     )
   },
@@ -35,10 +44,12 @@ const PostRepository = AppDataSource.getRepository(Post).extend({
       .execute();
     // Step 2: Find new relations to be inserted (find set difference between tags and previous result)
     const difference = tags.filter(t => !result.some(r => r.tagId === t.id));
-    await this.createQueryBuilder()
-      .relation(Post, "tags")
-      .of(postId)
-      .add(difference);
+    if (difference.length > 0) {
+      await this.createQueryBuilder()
+        .relation(Post, "tags")
+        .of(postId)
+        .add(difference);
+    }
     // Step 3: Soft-delete other relations (tags)
     return this.createQueryBuilder()
       .softDelete()

@@ -37,6 +37,12 @@ AppDataSource.initialize().then(async () => {
     await PostRepository.updateTags(post1.id, [tag1, tag3, tag4])
 
     // Query many-to-many relations
-    const post = await PostRepository.find()
+    let post = await PostRepository.find()
+    console.log(JSON.stringify(post, null, 2))
+
+    post1.tags = [tag1, tag2, tag3]
+    post2.tags = [tag1, tag4]
+    await PostRepository.save([post1, post2])
+    post = await PostRepository.find()
     console.log(JSON.stringify(post, null, 2))
 }).catch(error => console.log(error))
