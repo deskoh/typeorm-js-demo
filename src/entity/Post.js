@@ -34,7 +34,7 @@ export class Post extends Base {
   // postToTags;
 
   @ManyToMany(() => Tag, tag => tag.posts, {
-    cascade: ["insert"],
+    cascade: ["insert"], // save tags if they don't exist
   })
   @JoinTable({
     name: 'PostTag',

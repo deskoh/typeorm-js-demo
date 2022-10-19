@@ -1,9 +1,8 @@
-import { IsNull, Not } from "typeorm";
-
 import { AppDataSource } from "./data-source"
 import { Post } from './entity/Post';
 import { Tag } from './entity/Tag';
-import { PostTag } from './entity/PostTag';
+
+import PostRepository from './PostRepository';
 
 AppDataSource.initialize().then(async () => {
     const tag1 = new Tag()
@@ -34,39 +33,10 @@ AppDataSource.initialize().then(async () => {
     post2.tags = [tag2]
     await AppDataSource.manager.save(post2)
 
-    // Soft-delete relations
-    await AppDataSource.manager.createQueryBuilder()
-      .softDelete()
-      .from(PostTag)
-      .where("postId = :postId", { postId: post1.id })
-      .andWhere("tagId NOT IN (:...tagIds)", { tagIds: [tag1.id, tag3.id] })
-      .execute();
+    // Update relations
+    await PostRepository.updateTags(post1.id, [tag1, tag3, tag4])
 
     // Query many-to-many relations
-    const builder = AppDataSource.manager.getRepository(Post)
-      .createQueryBuilder()
-      .leftJoinAndSelect("Post.tags", "tag");
-    const junctionAlias = builder.expressionMap.joinAttributes[0].junctionAlias; // post_tag
-    const post = await builder
-      .where(`"${junctionAlias}"."deletedAt" IS NULL`)
-      .getMany();
-    console.log(JSON.stringify(post, null, 2));
-
-    // Update relations (2-step process)
-    const newTags = [tag1, tag2, tag3, tag4]
-    // Step 1: Restore any deleted relations
-    const { raw: result } = await AppDataSource.manager.createQueryBuilder()
-      .restore()
-      .from(PostTag)
-      .where("postId = :postId", { postId: post1.id })
-      .andWhere("tagId IN (:...tagIds)", { tagIds: newTags.map(t => t.id) })
-      .returning(['postId', 'tagId'])
-      .execute();
-    console.log(result);
-    // Step 2: Find new relations to be inserted (find set difference between newTags and result)
-    const difference = newTags.filter(t => !result.some(r => r.tagId === t.id));
-    await AppDataSource.manager.createQueryBuilder()
-      .relation(Post, "tags")
-      .of(post1)
-      .add(difference);
+    const post = await PostRepository.find()
+    console.log(JSON.stringify(post, null, 2))
 }).catch(error => console.log(error))
