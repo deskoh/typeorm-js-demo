@@ -22,20 +22,7 @@ export class Post extends Base {
   @Column("varchar")
   text = "";
 
-  @BeforeUpdate()
-  updateTags() {
-    // Tag to be updated manually using join table
-    this.tags = undefined;
-  }
-
-  // @OneToMany(() => PostToTag, PostToTag => PostToTag.post, {
-  //   cascade: true,
-  // })
-  // postToTags;
-
-  @ManyToMany(() => Tag, tag => tag.posts, {
-    cascade: ["insert"], // save tags if they don't exist
-  })
+  @ManyToMany(() => Tag, tag => tag.posts)
   @JoinTable({
     name: 'PostTag',
     /* joinColumn: {

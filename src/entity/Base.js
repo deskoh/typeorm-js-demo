@@ -1,4 +1,4 @@
-import { BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
+import { BaseEntity, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 
 export class Base extends BaseEntity {
   @CreateDateColumn({ select: false, createDate: true })
